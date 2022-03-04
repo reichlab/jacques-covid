@@ -2,9 +2,25 @@ import covidcast
 import pandas as pd
 import numpy as np
 
-# return location, date, value, rate, population
-# end_date is T in overleaf
 def load_data(measure="hospitalizations", as_of = None, end_date = "2021-07-01"):
+    """
+    Load data for selected measure from covidcast
+
+    Parameters
+    ----------
+    measure: string 
+        Default to "hospitalizations"
+    as_of: string of date in YYYY-MM-DD format. 
+        Default to None.
+    end_date: string of date in YYYY-MM-DD format. 
+        Default to "2021-07-01"
+
+    Returns
+    -------
+    df: data frame
+        It has columns location, date, inc_hosp, population and rate. 
+        It is sorted by location and date columns in ascending order.
+    """
     if measure == "hospitalizations":
         data_source = "hhs"
         signal = "confirmed_admissions_covid_1d"
@@ -53,7 +69,3 @@ def load_data(measure="hospitalizations", as_of = None, end_date = "2021-07-01")
     df = df.sort_values(['location', 'date'], ascending=[True, True])
 
     return df
-
-
-df = load_data()
-df.to_csv("hosp_data_till_July.csv", index=False)
