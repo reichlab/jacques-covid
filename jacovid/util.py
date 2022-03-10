@@ -5,7 +5,7 @@ import numpy as np
 def load_data(measure="hospitalizations", as_of = None, end_date = "2021-07-01"):
     """
     Load data for selected measure from covidcast
-
+    
     Parameters
     ----------
     measure: string 
@@ -14,7 +14,7 @@ def load_data(measure="hospitalizations", as_of = None, end_date = "2021-07-01")
         Default to None.
     end_date: string of date in YYYY-MM-DD format. 
         Default to "2021-07-01"
-
+    
     Returns
     -------
     df: data frame
@@ -61,11 +61,11 @@ def load_data(measure="hospitalizations", as_of = None, end_date = "2021-07-01")
     # filter by date 
     df = df[df['date'] >= "2020-10-01"] 
     df = df[df['date'] <= end_date]
-
+    
     # create rate column
     df['rate'] = df['inc_hosp']/df['population'] * 100000
-
+    
     # sort data
     df = df.sort_values(['location', 'date'], ascending=[True, True])
-
+    
     return df
