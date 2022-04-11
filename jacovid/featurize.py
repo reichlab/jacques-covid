@@ -43,7 +43,7 @@ def featurize_data(data, target_var="inc_hosp", h=1, feature_parameters =
         could be calculated. P is number of features.
         Each row is a vector x_{l,t} = [x_{l,t,1},...,x_{l,t,P}] of features for some pair 
         (l, t) in the training set.
-    y_train_val: 3D tensor with with shape (L, T, P) 
+    y_train_val: 2D tensor with with shape (L, T) 
         Each value is a forecast target variable value in the training set.
         y_{l, t} = z_{l, 1, t+h}
     x_T: 2D tensor with shape (L, P)
@@ -84,7 +84,7 @@ def featurize_data(data, target_var="inc_hosp", h=1, feature_parameters =
 
     y_train_val = train_val.pivot(index = "location", columns = "date", values = 'h_days_ahead_target').to_numpy()
     # shape is (L, T, P)
-    y_train_val = y_train_val.reshape((y_train_val.shape[0], y_train_val.shape[1], 1))
+    y_train_val = y_train_val.reshape((y_train_val.shape[0], y_train_val.shape[1]))
 
     # convert everything to tensor
     x_train_val = tf.constant(x_train_val)
