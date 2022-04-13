@@ -1,11 +1,8 @@
-import sys
-import os
-sys.path.append(os.path.join(os.path.dirname(__file__), '..')) 
 import pandas as pd
 import numpy as np
 import tensorflow as tf
 
-def featurize_data(data, target_var="inc_hosp", h=1, feature_parameters = 
+def featurize_data(data, target_var="inc_hosp", h=1, features = 
     [{
         "fun": 'moving_average',
         "args": {'target_var': "inc_hosp", 'num_days': 7}
@@ -29,7 +26,7 @@ def featurize_data(data, target_var="inc_hosp", h=1, feature_parameters =
         Default to "inc_hosp"
     h: integer
         Forecast horizon. Default to 1.
-    feature_parameters: array of dictionaries
+    features: array of dictionaries
         List of features to calculate. Each dictionary should have a `fun` key with feature function name
         and an `args` key with parameter name and values of this function.
         Available feature functions are "moving_average" and "lagged_values".
@@ -51,13 +48,13 @@ def featurize_data(data, target_var="inc_hosp", h=1, feature_parameters =
     """
     assert target_var in data.columns
 
-    # data has columns date, location, inc hosp, rate and population
+    # extract the largest date
     T = max(data['date'])
 
     # calculate features based on given parameters
     # and collect a list of feature names
     features_list = list()
-    for feature in feature_parameters:
+    for feature in features:
         data, features_list = data.pipe(eval(feature["fun"]), features_list =features_list, **feature["args"])
     
     # create a column for h horizon ahead target for observed values. 
@@ -68,16 +65,11 @@ def featurize_data(data, target_var="inc_hosp", h=1, feature_parameters =
     # create x_T using data with date = forecast_date (T)
     data_T = data.loc[data["date"]== T,:]
 
-    # x_T is (L, P)
-    x_T = data_T[features_list].values
     # x_T is (L, 1, P)
-    x_T = np.expand_dims(x_T, axis = 1)
-    
-    # list of indices of rows that have as least one nan
-    na_idx, _ = np.where(data.isna())
+    x_T = np.expand_dims(data_T[features_list].values, -2)
     
     # take out nans in data
-    train_val = data.drop(na_idx)
+    train_val = data.dropna()
     
     # reformat selected features
     x_train_val = train_val.pivot(index = "location", columns = "date", values = features_list).to_numpy()
