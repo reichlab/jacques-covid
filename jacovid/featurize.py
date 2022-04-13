@@ -46,7 +46,7 @@ def featurize_data(data, target_var="inc_hosp", h=1, feature_parameters =
     y_train_val: 2D tensor with with shape (L, T) 
         Each value is a forecast target variable value in the training set.
         y_{l, t} = z_{l, 1, t+h}
-    x_T: 2D tensor with shape (L, P)
+    x_T: 3D tensor with shape (L, T = 1, P)
         Each value is test set feature for each location at forecast date.
     """
     assert target_var in data.columns
@@ -70,6 +70,8 @@ def featurize_data(data, target_var="inc_hosp", h=1, feature_parameters =
 
     # x_T is (L, P)
     x_T = data_T[features_list].values
+    # x_T is (L, 1, P)
+    x_T = np.expand_dims(x_T, axis = 1)
     
     # list of indices of rows that have as least one nan
     na_idx, _ = np.where(data.isna())
@@ -82,9 +84,8 @@ def featurize_data(data, target_var="inc_hosp", h=1, feature_parameters =
     # shape is (L, T, P)
     x_train_val = x_train_val.reshape((x_train_val.shape[0], x_train_val.shape[1]//len(features_list), len(features_list)),order='F')
 
-    y_train_val = train_val.pivot(index = "location", columns = "date", values = 'h_days_ahead_target').to_numpy()
     # shape is (L, T, P)
-    y_train_val = y_train_val.reshape((y_train_val.shape[0], y_train_val.shape[1]))
+    y_train_val = train_val.pivot(index = "location", columns = "date", values = 'h_days_ahead_target').to_numpy()
 
     # convert everything to tensor
     x_train_val = tf.constant(x_train_val)
