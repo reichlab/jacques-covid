@@ -80,9 +80,9 @@ def featurize_data(data, target_var="inc_hosp", h=1, features =
     y_train_val = train_val.pivot(index = "location", columns = "date", values = 'h_days_ahead_target').to_numpy()
 
     # convert everything to tensor
-    x_train_val = tf.constant(x_train_val)
-    y_train_val = tf.constant(y_train_val)
-    x_T = tf.constant(x_T)
+    x_train_val = tf.constant(x_train_val.astype('float64'))
+    y_train_val = tf.constant(y_train_val.astype('float64'))
+    x_T = tf.constant(x_T.astype('float64'))
     
     return x_train_val, y_train_val, x_T
 
@@ -92,7 +92,7 @@ def moving_average(data, target_var, features_list, num_days = 7):
 
     Parameters
     ----------
-    data: data frame 
+    data: data frame
         It has columns location, date, and a column with the response variable to forecast.
         This data frame needs to be sorted by location and date columns in ascending order.
     target_var: string
@@ -104,23 +104,26 @@ def moving_average(data, target_var, features_list, num_days = 7):
     
     Returns
     -------
-    data: data frame 
+    data: data frame
         Original data frame with additional column for moving average
     features_list: list of strings
         Running list of feature column names
     """
-    column_name = str(num_days)+"_moving_avg_"+str(target_var)
+    column_name = "moving_avg_" + str(num_days) + '_' + str(target_var)
     features_list.append(column_name)
-    data[column_name] = data.groupby('location').rolling(num_days)[target_var].mean().reset_index(drop=True)
+    data[column_name] = data.groupby('location') \
+        .rolling(num_days)[target_var] \
+        .mean() \
+        .values
     return data, features_list
 
-def lagged_values(data, target_var, features_list, window_size):
+def lagged_values(data, target_var, features_list, window_size=1, lags=None):
     """
     Cacluate lagged values of target variable and store results in new columns
 
     Parameters
     ----------
-    data: data frame 
+    data: data frame
         It has columns location, date, and a column with the response variable to forecast.
         This data frame needs to be sorted by location and date columns in ascending order.
     target_var: string
@@ -128,17 +131,23 @@ def lagged_values(data, target_var, features_list, window_size):
     features_list: list of strings
         Running list of feature column names
     window_size: integer
-        Time window to calculate lagged values for
+        Time window to calculate lagged values for. Ignored if lags is not None.
+    lags: list of integers
+        List of lags to use.
     
     Returns
     -------
-    data: data frame 
+    data: data frame
         Original data frame with additional columns for lagged values.
     features_list: list of strings
         Running list of feature column names
     """
-    for lag in range(1, window_size + 1):
-        data['lag_' + str(lag)] = data.groupby('location')[target_var].shift(lag)
-        features_list.append('lag_' + str(lag))
+    if lags is None:
+        lags = [l for l in range(1, window_size + 1)]
+    
+    for lag in lags:
+        feat_name = 'lag_' + str(lag) + '_' + target_var
+        data[feat_name] = data.groupby('location')[target_var].shift(lag)
+        features_list.append(feat_name)
     return data, features_list
 
