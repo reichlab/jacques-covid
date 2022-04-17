@@ -2,6 +2,11 @@ import numpy as np
 import pandas as pd
 import math
 
+import tensorflow as tf
+import tensorflow_probability as tfp
+from tensorflow_probability import distributions as tfd
+from tensorflow_probability import sts
+
 
 def trailing_taylor_coefs_taylor_update(loc_data,
                                         target_var,
@@ -391,3 +396,54 @@ def gp_smooth_loc_data(loc_data, target_var, n_iter=20000):
   return gp_smooth(t=tf.constant(t),
                    y=tf.constant(y),
                    n_iter=n_iter)
+
+
+
+def build_st_model(observed_time_series):
+	trend = sts.LocalLinearTrend(observed_time_series=observed_time_series)
+	seasonal = tfp.sts.Seasonal(
+		num_seasons=7,
+		observed_time_series=observed_time_series)
+	model = sts.Sum([trend, seasonal], observed_time_series=observed_time_series)
+	return model
+
+
+def st_decomp(target_var, data):
+	st_model = build_st_model(data[[target_var]].values.squeeze())
+
+	# Build the variational surrogate posteriors `qs`.
+	variational_posteriors = tfp.sts.build_factored_surrogate_posterior(
+		model=st_model)
+
+	num_variational_steps = 200 # @param { isTemplate: true}
+	num_variational_steps = int(num_variational_steps)
+
+	# Build and optimize the variational loss function.
+	elbo_loss_curve = tfp.vi.fit_surrogate_posterior(
+		target_log_prob_fn=st_model.joint_distribution(
+			observed_time_series=data[[target_var]].values.squeeze()).log_prob,
+		surrogate_posterior=variational_posteriors,
+		optimizer=tf.optimizers.Adam(learning_rate=0.1),
+		num_steps=num_variational_steps,
+		jit_compile=True)
+
+	# plt.plot(elbo_loss_curve)
+	# plt.show()
+
+	q_samples = variational_posteriors.sample(50)
+
+	component_dists = sts.decompose_by_component(
+		st_model,
+		observed_time_series=data[[target_var]].values.squeeze(),
+		parameter_samples=q_samples)
+
+	component_means = {k.name: c.mean() for k, c in component_dists.items()}
+
+	# plt.plot(component_means)
+
+	data[target_var + '_trend'] = np.mean(data[[target_var]].values.squeeze()) + \
+		component_means['LocalLinearTrend/'].numpy()
+	data[target_var + '_seasonal'] = component_means['Seasonal/']
+
+	return data
+

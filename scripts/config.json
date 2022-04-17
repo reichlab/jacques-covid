@@ -2,16 +2,15 @@
   "model_configs": {
     "kcqe_rollmean": {
       "comment": "KCQE using a rolling mean as features",
-      "model": "jacovid.models.kcqe.KCQE",
+      "model": "jacovid.kcqe.kcqe_rollmean",
       "model_args": {
         "lags": [ 0, 7, 14],
         "x_kernel": "gaussian_diag"
       },
-      "init_fit_epochs": 50,
-      "update_fit_epochs": 10
+      "init_fit_epochs": 10,
+      "update_fit_epochs": 1
     }
   },
-
   "model_groups": {
     "init_methods": {
       "model_configs": [ "kcqe_rollmean" ]
