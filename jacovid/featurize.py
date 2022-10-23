@@ -11,7 +11,8 @@ def featurize_data(data, target_var="inc_hosp", h=1, features =
         "fun": 'lagged_values',
         "args": {'target_var': "inc_hosp", 'window_size': 2}
         },
-    ]):
+    ],
+    keep_weekdays='all'):
     """
     Convert data to tensors containing features x and responses y for each location
     and time.
@@ -30,6 +31,8 @@ def featurize_data(data, target_var="inc_hosp", h=1, features =
         List of features to calculate. Each dictionary should have a `fun` key with feature function name
         and an `args` key with parameter name and values of this function.
         Available feature functions are "moving_average" and "lagged_values".
+    keep_weekdays: string
+        Option for whether to keep `'all'` weekdays or only those equal to the `'last'` weekday with observed data.
         
     Returns
     -------
@@ -71,6 +74,10 @@ def featurize_data(data, target_var="inc_hosp", h=1, features =
     # take out nans in data
     train_val = data.dropna()
     
+    # if requested, subset to dates with the same weekday as the last weekday
+    if keep_weekdays == 'last':
+        data = data.loc[data.date.dt.weekday == T.weekday()]
+    
     # reformat selected features
     x_train_val = train_val.pivot(index = "location", columns = "date", values = features_list).to_numpy()
     # shape is (L, T, P)
@@ -80,9 +87,9 @@ def featurize_data(data, target_var="inc_hosp", h=1, features =
     y_train_val = train_val.pivot(index = "location", columns = "date", values = 'h_days_ahead_target').to_numpy()
 
     # convert everything to tensor
-    x_train_val = tf.constant(x_train_val.astype('float64'))
-    y_train_val = tf.constant(y_train_val.astype('float64'))
-    x_T = tf.constant(x_T.astype('float64'))
+    x_train_val = tf.constant(x_train_val.astype('float32'))
+    y_train_val = tf.constant(y_train_val.astype('float32'))
+    x_T = tf.constant(x_T.astype('float32'))
     
     return x_train_val, y_train_val, x_T
 

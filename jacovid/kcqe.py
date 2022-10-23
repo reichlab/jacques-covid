@@ -42,17 +42,18 @@ class kcqe_rollmean():
             ])
         self.kcqe_obj = kcqe.KCQE(x_kernel = self.x_kernel, p=len(self.lags) + 1)
         block_size = 21
+        num_blocks = math.floor(self.y_train_val.shape[1]/block_size)
         self.generator = self.kcqe_obj.generator(self.x_train_val,
                                                  self.y_train_val,
-                                                 batch_size = 1,
+                                                 batch_size = num_blocks,
                                                  block_size = block_size)
         
         if init_param_vec is None:
-            init_param_vec = tf.constant(np.zeros(self.kcqe_obj.n_param))
+            init_param_vec = tf.constant(np.zeros(self.kcqe_obj.n_param), dtype=np.float32)
         
         self.param_vec = self.kcqe_obj.fit(
             xval_batch_gen = self.generator,
-            num_blocks = math.floor(self.y_train_val.shape[1]/block_size),
+            num_blocks = num_blocks,
             tau=tau,
             optim_method='adam',
             num_epochs=num_epochs,
